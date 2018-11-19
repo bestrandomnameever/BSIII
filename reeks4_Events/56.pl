@@ -1,87 +1,73 @@
-#oplossing die de drie reacties bevat en zeven instanties maakt.
-use Win32::OLE 'in';
+# We gaan reageren op timerevents in deze oefening
+# Dit is eigenlijk oefening 39 geautomatiseerd
+# Ik heb de 40/41 nog niet gedaan
+use Win32::OLE qw/in EVENTS/;
+use Win32::Console;
 use Win32::OLE::Const 'Microsoft WMI Scripting ';
-$Win32::OLE::Warn = 3; #script stopt met foutmelding als er ergens iets niet lukt
+use Win32::OLE::Variant;
+use Data::Dumper;
+
+sub createWbemServices {
+    my $ComputerName  = ".";
+    my $NameSpace = "root/cimv2";
+    return Win32::OLE->GetObject("winmgmts://$ComputerName/$NameSpace");
+}
+
+# Na elke put is het belangrijk om te checken op fouten
+sub checkOpFouten {
+    if(Win32::OLE->LastError()){
+        print Win32::OLE->LastError(), "\n";
+    }
+}
 
 
-my $ComputerName = ".";
-my $NameSpace = "root/cimv2";
-my $Locator=Win32::OLE->new("WbemScripting.SWbemLocator");
-my $WbemServices = $Locator->ConnectServer($ComputerName, $NameSpace);
+my $WbemServices = createWbemServices();
 
-#periodiek
-my $Instance = $WbemServices->Get("__IntervalTimerInstruction")->SpawnInstance_();
-$Instance->{TimerID}  = 'test';
-$Instance->{IntervalBetweenEvents} = 60000;
-$instancePath=$Instance->Put_(wbemFlagUseAmendedQualifiers);
+# 1. Eventfilterklasse gaan ophalen
+# Als je kijkt naar deze klasse heeft hij geen Create methode. Dus je gaat met SpawnInstance moeten werken. Feestje
+# wbemFlagUseAmendedQualifiers constante kan handig zijn
+my $EventFilterClass = $WbemServices->Get("__EventFilter", wbemFlagUseAmendedQualifiers);
+my $EventFilterInstance = $EventFilterClass->SpawnInstance_();
 
-#of eenmalig
-my $DateTime = Win32::OLE->new("WbemScripting.SWbemDateTime"); #data manipuleren
-$Instance = $WbemServices->Get("__AbsoluteTimerInstruction")->SpawnInstance_();
-$Instance->{TimerID}  = 'test2';
-$DateTime->SetVardate("09/11/2018 11:00:00"); #het gewenste moment
-$Instance->{EventDateTime} = $DateTime->{Value};
-$instancePath=$Instance->Put_(wbemFlagUseAmendedQualifiers);
+# Instellen van parameters van EventFilter
+# Naam moet je niet instellen, maar zo zie je snel waarover het gaat in CIM STUIDO
+$EventFilterInstance->{Query} = "select * from __TimerEvent";
+$EventFilterInstance->{QueryLanguage} = "WQL";
 
-#Oorzaak event koppelen aan voorgaand object : 
-my $InstanceEvent = $WbemServices->Get("__EventFilter")->SpawnInstance_();
-$InstanceEvent->{Name}="test";
-$InstanceEvent->{QueryLanguage}="WQL";
-$InstanceEvent->{Query}="SELECT * FROM __TimerEvent where TimerID = 'test2'"; #wijzig dit naar test indien je periodieke reacties wilt
-$Filter = $InstanceEvent->Put_(wbemFlagUseAmendedQualifiers);
-$Filterpad=$Filter->{path};
+# Put gebruiken zodat de wijzigingen worden doorgevoerd
+my $EventFilterPath = $EventFilterInstance->Put_();
+checkOpFouten();
 
-#gewenste melding
-$melding = "timer wordt gelogd op tijdstip %TIME_CREATED% op toestel %__SERVER%";
+# 2. Consumer gaan instellen. 
+# Er zijn een aantal consumers. Check de subklassen van __EventConsumer eens. Wij gebruiken een CommandLineEventConsumer
+# Deze is opnieuw niet creatable dus moeten we hem met SpawnInstance_() gaan aanmaken
+# Naam moet je niet instellen, maar zo zie je snel waarover het gaat in CIM STUIDO
+my $CommandLineEventConsumerClass = $WbemServices->Get("CommandLineEventConsumer", wbemFlagUseAmendedQualifiers);
+my $CommandLineEventConsumerInstance = $CommandLineEventConsumerClass->SpawnInstance_();
 
-#Reactie1
-my $InstanceReactie1 = $WbemServices->Get("CommandLineEventConsumer")->SpawnInstance_();
-$InstanceReactie1->{Name}="test";
-$InstanceReactie1->{CommandLineTemplate} =  "msg console /Time:5 $melding";
-$Consumer = $InstanceReactie1->Put_(wbemFlagUseAmendedQualifiers);
-$Consumerpad1=$Consumer->{path};  
+# Instellen van properties van CommandLineEventConsumer
+# Dit gaat een bericht sturen naar de console
 
-#Reactie2
-my $InstanceReactie2= $WbemServices->Get("LogFileEventConsumer")->SpawnInstance_();
-$InstanceReactie2->{Name}="test";
-$InstanceReactie2->{FileName} = 'C:\\\\temp\\log.txt';
-$InstanceReactie2->{Text} = "timer wordt gelogd op tijdstip $melding";
-$Consumer = $InstanceReactie2->Put_(wbemFlagUseAmendedQualifiers);
-$Consumerpad2=$Consumer->{path};  
+$CommandLineEventConsumerInstance->{CommandLineTemplate} = "msg console /Time: 5 'TEST'";
 
-#Reactie3
-my $InstanceReactie3= $WbemServices->Get("NTEventLogEventConsumer")->SpawnInstance_();
-$InstanceReactie3->{Name}="test";
-$InstanceReactie3->{SourceName} = "WinMgmt";
-$InstanceReactie3->{EventType} = 0;
-$InstanceReactie3->{EventID} = 2017;#0xC0000A;
-$InstanceReactie3->{NumberOfInsertionStrings} = 1;
-$InstanceReactie3->{Category} = 0;
-$InstanceReactie3->{InsertionStringTemplates }=[$melding];  #als array doorgeven
-$Consumer = $InstanceReactie3->Put_(wbemFlagUseAmendedQualifiers);
-$Consumerpad3=$Consumer->{path};  
+# Als je hier geen wbemFlagUseAmendedQualifiers meegeeft aan put gaat hij boos zijn
+# De fout wordt wel opgevangen in LastError() dus je kan hier in feite niet mis zijn
+my $ConsumerPath = $CommandLineEventConsumerInstance->Put_(wbemFlagUseAmendedQualifiers);
+checkOpFouten();
 
-#3 koppelingen:
-my $InstanceKoppeling1 = $WbemServices->Get("__FilterToConsumerBinding")->SpawnInstance_();
-$InstanceKoppeling1->{Filter}   = $Filterpad; 
-$InstanceKoppeling1->{Consumer} = $Consumerpad1;
-$Result=$InstanceKoppeling1->Put_(wbemFlagUseAmendedQualifiers);
-print "\n1.\n",$Result->{Path},"\n"; #ter controle
+# 3. Nu moeten we een FilterToConsumerBinding maken
+# We moeten het path van de objecten gaan aanpassen zodat FilterToConsumerBinding ze begrijpt
+# Als je een object aanmaakt met Put_() kan je het path niet opvragen op de normale manier
+# Je moet het object dat te terugkrijgt van Put bijhouden.
+# Hier moet je het path niet gaan veranderen. Blijkbaar staan die al juist na put, joepie!
 
-my $InstanceKoppeling2 = $WbemServices->Get("__FilterToConsumerBinding")->SpawnInstance_();
-$InstanceKoppeling2->{Filter}   = $Filterpad; 
-$InstanceKoppeling2->{Consumer} = $Consumerpad2;
-$Result=$InstanceKoppeling2->Put_(wbemFlagUseAmendedQualifiers);
-print "\n2.\n",$Result->{Path},"\n"; #ter controle
+my $FilterToConsumerBindingClass = $WbemServices->Get("__FilterToConsumerBinding", wbemFlagUseAmendedQualifiers);
+my $FilterToConsumerBindingInstance = $FilterToConsumerBindingClass->SpawnInstance_();
 
-my $InstanceKoppeling3 = $WbemServices->Get("__FilterToConsumerBinding")->SpawnInstance_();
-$InstanceKoppeling3->{Filter}   = $Filterpad; 
-$InstanceKoppeling3->{Consumer} = $Consumerpad3;
-$Result=$InstanceKoppeling3->Put_(wbemFlagUseAmendedQualifiers);
-print "\n3.\n",$Result->{Path},"\n"; #ter controle
+# Properties setten
+$FilterToConsumerBindingInstance->{Filter} = $EventFilterPath->{Path};
+$FilterToConsumerBindingInstance->{Consumer} = $ConsumerPath->{Path};
 
-#opmerking - je kan het tijdstip berekenen vanaf het huidig moment:
-my ($sec,$min,$hour,$dag,$maand,$jaar) = localtime(time+5); #over 5 seconden
-  $jaar+=1900;
-  $maand++;
-$DateTime->SetVardate("$dag/$maand/$jaar $hour:$min:$sec"); #het gewenste moment
+$FilterToConsumerBindingInstance->Put_();
+checkOpFouten();
+
