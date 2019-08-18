@@ -13,7 +13,7 @@ for $nsheet (in $Book->Worksheets){
     $laatstegebruikteCell = $nsheet->Range('A1')->SpecialCells(xlCellTypeLastCell);
     $range = $nsheet->Range('A1', $laatstegebruikteCell);
 
-    $cells = $range->{'Value'};
+    $cells = $range->{Value};
 
     foreach $ref_cells (@$cells){
         foreach $scalar (@$ref_cells){

@@ -7,7 +7,7 @@ $computerNaam = 'LocalHost';
 $nameSpace = "root/cimv2";
 
 
-$Locator = Win32::OLE->new('WbemScripting.SWbemLocator.1');
+$Locator = Win32::OLE->new('WbemScripting.SWbemLocator');
 $WbemServices = $Locator->ConnectServer($computerNaam, $nameSpace);
 print Win32::OLE->QueryObjectType($WbemServices), "\n";
 

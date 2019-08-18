@@ -5,9 +5,10 @@ Win32::OLE->Option(Warn => 3);
 $ComputerName = ".";
 $NameSpace = "root/cimv2";
 
-$ClassName = "Win32_Directory.Name=\"c:\\\\\"";
+$ClassName = 'Win32_Directory.Name="c:\\\\"';
 
 $moniker = "winmgmts://$ComputerName/$NameSpace:$ClassName";
 $Directory = Win32::OLE->GetObject($moniker);
+
 
 printf("FileType => %s\n", $Directory->FileType);

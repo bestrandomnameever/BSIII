@@ -1,5 +1,7 @@
 use Win32::OLE 'in';
 use Data::Dumper;
+#Anders werkt het niet
+use Win32::OLE::Variant;
 
 # Date ophalen om datum te kunnen parsen
 my $DateTime = Win32::OLE->new("WbemScripting.SWbemDateTime");
@@ -20,13 +22,13 @@ for (in $instance->{Properties_}, $instance->{SystemProperties_}){
     
     #Vraag, hoe weten we dat 101 van het type datum is? Door te gaan kijken in MSDN
     #kijken bij WbemCimTypeEnum
-    if ($_->{CIMType} == 101){ #datum, GetVarDate werkt niet bij mij. GetVarDate geeft mij precies een object terug
-       $DateTime->{Value} = $_->{Value};     
-       #print $_->{Name}, "=>" ,$DateTime->{GetVarDate}, "\n";
+    if ($_->{CIMType} == 101){ #datum, GetVarDate werkt niet bij mij. GetVarDate geeft mij precies een object terug   
+        $DateTime->{Value} = $_->{Value};
+       print $_->{Name}, "=>" ,$DateTime->{GetVarDate}, "\n";
        # Zo werkt het wel
        print $_->Name, "=> ",$DateTime->Day, "/", $DateTime->Month, "/", $DateTime->Year, "\n";
     } else {
-        print $_->{Name}, "=> ", $_->{Value}, "\n" if !$_->{IsArray};
-        print $_->{Name}, " ", join ", ",  (in $_->{Value}), "\n" if $_->{IsArray};
+        #print $_->{Name}, "=> ", $_->{Value}, "\n" if !$_->{IsArray};
+        #print $_->{Name}, " ", join ", ",  (in $_->{Value}), "\n" if $_->{IsArray};
     }
 }

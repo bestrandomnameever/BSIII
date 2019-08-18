@@ -48,7 +48,7 @@ my $CommandLineEventConsumerInstance = $CommandLineEventConsumerClass->SpawnInst
 # Instellen van properties van CommandLineEventConsumer
 # Dit gaat een bericht sturen naar de console
 
-$CommandLineEventConsumerInstance->{CommandLineTemplate} = "msg console /Time: 5 'TEST'";
+$CommandLineEventConsumerInstance->{CommandLineTemplate} = "msg console /Time 5 'TEST'";
 
 # Als je hier geen wbemFlagUseAmendedQualifiers meegeeft aan put gaat hij boos zijn
 # De fout wordt wel opgevangen in LastError() dus je kan hier in feite niet mis zijn

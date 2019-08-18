@@ -22,11 +22,11 @@ $Excel->{'Visible'} = 1;
 $Book = $Excel->Workbooks->Open(join('\\', $fso->GetFolder('.\Excel')->Path, $ARGV[0]));
 $sheet = $Book->Worksheets(1);
 $range=$sheet->Range("A1:D10");
-@_ = ($range);
-printRange();
+printRange($range);
+
+#Deze range is 1 cel en is de cel op rij 4 kolom 1 of dus A
 $range=$sheet->Cells(4,1);
-@_ = ($range);
-printRange();
+printRange($range);
+
 $range=$sheet->Range($sheet->Cells(1,1),$sheet->Cells(4,3));
-@_ = ($range);
-printRange();
+printRange($range);

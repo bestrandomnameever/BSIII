@@ -25,3 +25,8 @@ $ObjectSet = $IRQ->Associators_();
 for (@instances){
     print $_->{Description}, "\n" if $_->__CLASS == "Win32_NetworkAdapter";
 }
+
+# Of beter:
+#(my $Class) = in $WbemServices->ExecQuery("select * from Win32_IRQResource where IRQNumber = " . shift);
+# Check de parameters in Associators_() in MSDN
+#my $Associators = $Class->Associators_(undef, "Win32_NetworkAdapter");

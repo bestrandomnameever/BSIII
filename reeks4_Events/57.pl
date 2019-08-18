@@ -16,7 +16,7 @@ sub deleteInstances {
     foreach (in $Instances){
         # Aangezien alle $instances hier geen delete methode hebben moeten we Delete_ gebruiken.
         # Zie oefening 50
-        $_->Delete_;
+        $_->Delete_();
 
         # Check op fouten
         Win32::OLE->LastError();
